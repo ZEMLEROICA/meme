@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔥 МЕМНЫЙ КЕЙС 228 (JSON) 🔥</title>
+    <title>🔥 МЕМНЫЙ КЕЙС 228 (GITHUB API) 🔥</title>
     <link href="https://fonts.googleapis.com/css2?family=Impact&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -41,7 +41,6 @@
         }
 
         h1 { font-size: 3rem; color: #ffff00; margin-bottom: 10px; }
-
         .container { max-width: 1000px; margin: 0 auto; }
 
         /* Таймер */
@@ -172,6 +171,37 @@
             width: 100%; padding: 10px; margin: 8px 0; font-family: sans-serif; font-size: 1rem;
         }
 
+        .admin-meme-list {
+            max-height: 250px;
+            overflow-y: auto;
+            background: #111;
+            padding: 10px;
+            border: 2px solid #555;
+            margin-top: 10px;
+            border-radius: 8px;
+        }
+
+        .admin-meme-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #333;
+        }
+        .admin-meme-item img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
+
+        .btn-delete {
+            background: #ff0000;
+            color: #fff;
+            border: none;
+            padding: 5px 12px;
+            cursor: pointer;
+            font-family: sans-serif;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .btn-delete:hover { background: #cc0000; }
+
         .modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center;
@@ -206,13 +236,22 @@
 
     <!-- Админ Панель -->
     <div class="admin-panel" id="adminPanel">
-        <h2 style="color: #ff0000; text-align: center;">⚙️ АДМИН ПАНЕЛЬ (JSON DB) ⚙️</h2>
+        <h2 style="color: #ff0000; text-align: center;">⚙️ АДМИН ПАНЕЛЬ (GITHUB API) ⚙️</h2>
         
-        <h3>1. Добавить мем:</h3>
+        <div style="background: #222; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+            <h4 style="color: #00ff00;">1. Настройки GitHub (Вводится 1 раз):</h4>
+            <label>Репозиторий (Логин/Имя):</label>
+            <input type="text" id="ghRepo" placeholder="например: ivan/meme-case">
+            <label>GitHub Personal Access Token:</label>
+            <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx">
+            <button class="btn" style="font-size: 1rem; padding: 5px 15px; background: #555;" onclick="saveCredentials()">Запомнить ключи</button>
+        </div>
+
+        <h4 style="color: #ffff00;">2. Добавить новый мем:</h4>
         <label>Название мема:</label>
         <input type="text" id="memeName" placeholder="Например: Повар спрашивает повара">
         
-        <label>Загрузить картинку (файл):</label>
+        <label>Загрузить картинку:</label>
         <input type="file" id="memeFile" accept="image/*">
         
         <label>Редкость:</label>
@@ -227,19 +266,14 @@
         <label>Шанс выпадения (Вес):</label>
         <input type="number" id="memeChance" value="10">
 
-        <button class="btn" style="width: 100%; margin: 10px 0; background: #00aa00;" onclick="addMeme()">ДОБАВИТЬ В ЛОКАЛЬНЫЙ JSON</button>
+        <button id="add-btn" class="btn" style="width: 100%; margin: 15px 0; background: #00aa00;" onclick="addAndPublishMeme()">🚀 ОПУБЛИКОВАТЬ МЕМ НА GITHUB</button>
 
-        <hr style="margin: 20px 0; border-color: #555;">
+        <hr style="border-color: #444; margin: 20px 0;">
 
-        <h3>2. Сохранить изменения на GitHub (чтобы было у ВСЕХ):</h3>
-        
-        <p style="margin: 10px 0; color: #ffcc00;">Вариант А: Скачать файл и закинуть на GitHub вручную</p>
-        <button class="btn" style="width: 100%; background: #0088cc;" onclick="downloadJSON()">СКАЧАТЬ ОБНОВЛЕННЫЙ memes.json</button>
-
-        <p style="margin: 15px 0 5px 0; color: #ffcc00;">Вариант Б: Авто-сохранение через GitHub API (Без скачивания):</p>
-        <input type="text" id="ghRepo" placeholder="Ваш логин/репозиторий (например: user/meme-case)">
-        <input type="password" id="ghToken" placeholder="GitHub Personal Access Token">
-        <button class="btn" style="width: 100%; background: #ff0055;" onclick="saveDirectToGitHub()">ОБНОВИТЬ В GITHUB АВТОМАТИЧЕСКИ</button>
+        <h4 style="color: #ff5555;">3. Управление и удаление текущих мемов:</h4>
+        <div class="admin-meme-list" id="adminMemeList">
+            <!-- Список мемов загрузится сюда -->
+        </div>
     </div>
 </div>
 
@@ -257,15 +291,24 @@
     let lastSpinTime = localStorage.getItem('lastSpinTime') || 0;
     let isSpinning = false;
 
+    document.getElementById('ghRepo').value = localStorage.getItem('ghRepo') || '';
+    document.getElementById('ghToken').value = localStorage.getItem('ghToken') || '';
+
+    function saveCredentials() {
+        localStorage.setItem('ghRepo', document.getElementById('ghRepo').value.trim());
+        localStorage.setItem('ghToken', document.getElementById('ghToken').value.trim());
+        alert("Ключи сохранены!");
+    }
+
     // --- 1. ЗАГРУЗКА БАЗЫ ДАННЫХ ИЗ JSON ---
     async function loadMemesJSON() {
         try {
-            const response = await fetch('memes.json?t=' + Date.now()); // Date.now() предотвращает кэширование
+            const response = await fetch('memes.json?t=' + Date.now());
             memesList = await response.json();
-            console.log("База данных загружена:", memesList);
             renderInventory();
+            renderAdminMemeList();
         } catch (e) {
-            alert("Ошибка загрузки memes.json! Проверьте наличие файла.");
+            console.error("Ошибка загрузки memes.json.");
         }
     }
     loadMemesJSON();
@@ -286,7 +329,7 @@
         } catch(e){}
     }
 
-    // --- 3. ТАЙМЕР 30 МИНУТ ---
+    // --- 3. ТАЙМЕР (30 минут) ---
     const SPIN_COOLDOWN = 30 * 60 * 1000;
 
     function updateTimer() {
@@ -405,7 +448,7 @@
         }
     }
 
-    // --- 5. АДМИНКА И РАБОТА С JSON ---
+    // --- 5. АДМИНКА + УДАЛЕНИЕ МЕМОВ ---
     function toggleAdmin() {
         const panel = document.getElementById('adminPanel');
         if (panel.style.display === 'block') {
@@ -414,25 +457,111 @@
             const pass = prompt("ПАРОЛЬ АДМИНА:");
             if (pass === "1002") {
                 panel.style.display = 'block';
+                renderAdminMemeList();
             } else {
                 alert("НЕВЕРНЫЙ ПАРОЛЬ!");
             }
         }
     }
 
-    function addMeme() {
-        const name = document.getElementById('memeName').value;
+    function renderAdminMemeList() {
+        const listEl = document.getElementById('adminMemeList');
+        if (memesList.length === 0) {
+            listEl.innerHTML = '<div style="color:#aaa;">В базе пока нет мемов.</div>';
+            return;
+        }
+
+        listEl.innerHTML = memesList.map((m, index) => `
+            <div class="admin-meme-item">
+                <img src="${m.img}" alt="${m.name}">
+                <span style="font-size: 0.9rem; margin-left: 10px; flex-grow: 1; text-align: left;">${m.name} (${m.rarity})</span>
+                <button class="btn-delete" onclick="deleteMeme(${index})">🗑️ Удалить</button>
+            </div>
+        `).join('');
+    }
+
+    async function pushListToGitHub(commitMsg) {
+        const repo = document.getElementById('ghRepo').value.trim();
+        const token = document.getElementById('ghToken').value.trim();
+
+        if (!repo || !token) {
+            alert("Заполните имя репозитория и GitHub Токен!");
+            return false;
+        }
+
+        saveCredentials();
+
+        try {
+            const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/memes.json`, {
+                headers: { 'Authorization': `token ${token}` }
+            });
+            
+            let sha = "";
+            if (getRes.ok) {
+                const getData = await getRes.json();
+                sha = getData.sha;
+            }
+
+            const jsonString = JSON.stringify(memesList, null, 2);
+            const bytes = new TextEncoder().encode(jsonString);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            const contentBase64 = btoa(binary);
+
+            const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/memes.json`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: commitMsg,
+                    content: contentBase64,
+                    sha: sha || undefined
+                })
+            });
+
+            return putRes.ok;
+        } catch (err) {
+            console.error(err);
+            return false;
+        }
+    }
+
+    async function deleteMeme(index) {
+        if (!confirm(`Точно удалить мем "${memesList[index].name}"?`)) return;
+
+        const deletedName = memesList[index].name;
+        memesList.splice(index, 1); // Удаляем из массива
+        renderAdminMemeList();
+
+        const success = await pushListToGitHub(`Удален мем: ${deletedName}`);
+        if (success) {
+            alert(`Мем "${deletedName}" успешно удален с GitHub!`);
+        } else {
+            alert("Ошибка при сохранении изменений на GitHub.");
+        }
+    }
+
+    async function addAndPublishMeme() {
+        const name = document.getElementById('memeName').value.trim();
         const fileInput = document.getElementById('memeFile');
         const rarity = document.getElementById('memeRarity').value;
         const chance = document.getElementById('memeChance').value;
 
         if (!name || !fileInput.files[0]) {
-            alert("Заполните название и выберите файл картинки!");
+            alert("Заполните название мема и выберите файл картинки!");
             return;
         }
 
+        const addBtn = document.getElementById('add-btn');
+        addBtn.disabled = true;
+        addBtn.innerText = "⏳ ПУБЛИКАЦИЯ...";
+
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = async function(e) {
             const base64Img = e.target.result;
             
             const newMeme = {
@@ -444,72 +573,23 @@
             };
 
             memesList.push(newMeme);
-            alert("Мем добавлен в локальный список! Теперь сохраните файл ниже.");
-            document.getElementById('memeName').value = '';
-            document.getElementById('memeFile').value = '';
-        };
-        reader.readAsDataURL(fileInput.files[0]);
-    }
 
-    // Скачать файл memes.json
-    function downloadJSON() {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(memesList, null, 2));
-        const dlAnchor = document.createElement('a');
-        dlAnchor.setAttribute("href", dataStr);
-        dlAnchor.setAttribute("download", "memes.json");
-        dlAnchor.click();
-    }
+            const success = await pushListToGitHub(`Добавлен мем: ${name}`);
 
-    // Прямая запись на GitHub через API
-    async function saveDirectToGitHub() {
-        const repo = document.getElementById('ghRepo').value.trim();
-        const token = document.getElementById('ghToken').value.trim();
-
-        if (!repo || !token) {
-            alert("Заполните имя репозитория и GitHub Токен!");
-            return;
-        }
-
-        try {
-            // 1. Получаем SHA существующего файла memes.json
-            const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/memes.json`, {
-                headers: { 'Authorization': `token ${token}` }
-            });
-            const getData = await getRes.json();
-            const sha = getData.sha;
-
-            // 2. Кодируем новый JSON в UTF-8 Base64
-            const jsonString = JSON.stringify(memesList, null, 2);
-            const bytes = new TextEncoder().encode(jsonString);
-            let binary = '';
-            for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
-            }
-            const contentBase64 = btoa(binary);
-
-            // 3. Отправляем PUT запрос
-            const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/memes.json`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `token ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: 'Обновление базы мемов из админки',
-                    content: contentBase64,
-                    sha: sha
-                })
-            });
-
-            if (putRes.ok) {
-                alert("УСПЕШНО! Файл memes.json обновлен на GitHub! Новые мемы появятся у всех пользователей через 1-2 минуты.");
+            if (success) {
+                alert("Мем успешно добавлен на GitHub!");
+                document.getElementById('memeName').value = '';
+                document.getElementById('memeFile').value = '';
+                renderAdminMemeList();
             } else {
-                const err = await putRes.json();
-                alert("Ошибка GitHub: " + err.message);
+                alert("Ошибка при сохранении мема на GitHub.");
             }
-        } catch (e) {
-            alert("Ошибка при сохранении: " + e.message);
-        }
+
+            addBtn.disabled = false;
+            addBtn.innerText = "🚀 ОПУБЛИКОВАТЬ МЕМ НА GITHUB";
+        };
+
+        reader.readAsDataURL(fileInput.files[0]);
     }
 </script>
 </body>
