@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "name": "Кошачий флекс",
+    "img": "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Z2YTZ6Y3p4Znl3aXo2aHZjcTN3andxZnR4eTgzOHI3ZWp5Zjd1dyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/GeimqsH0TLDt4tScGw/giphy.gif",
+    "rarity": "common",
+    "chance": 50
+  },
+  {
+    "id": 2,
+    "name": "Повар",
+    "img": "https://i.imgur.com/38p6U6N.jpg",
+    "rarity": "rare",
+    "chance": 30
+  },
+  {
+    "id": 3,
+    "name": "Гигачад",
+    "img": "https://i.imgur.com/rN9k4T2.jpg",
+    "rarity": "epic",
+    "chance": 15
+  },
+  {
+    "id": 4,
+    "name": "Жмышенко Валерий",
+    "img": "https://i.imgur.com/S20mXjF.jpg",
+    "rarity": "legendary",
+    "chance": 4
+  },
+  {
+    "id": 5,
+    "name": "ШРЕК БОГ",
+    "img": "https://media.giphy.com/media/pMZT9prrgA6f6/giphy.gif",
+    "rarity": "god",
+    "chance": 1
+  }
+]

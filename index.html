@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔥 МЕМНЫЙ КЕЙС 228 (JSON) 🔥</title>
+    <link href="https://fonts.googleapis.com/css2?family=Impact&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bfd, #7a00ff, #ff00c8, #ff0000);
+            background-size: 400% 400%;
+            animation: rainbowBg 5s ease infinite;
+            font-family: 'Impact', sans-serif;
+            color: #fff;
+            text-shadow: 3px 3px 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000;
+            text-align: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        @keyframes rainbowBg {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .blink { animation: blinker 0.3s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+
+        .shake { animation: shake 0.5s infinite; }
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            30% { transform: translate(-3px, 0px) rotate(1deg); }
+            50% { transform: translate(1px, 2px) rotate(-1deg); }
+            70% { transform: translate(3px, 1px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        h1 { font-size: 3rem; color: #ffff00; margin-bottom: 10px; }
+
+        .container { max-width: 1000px; margin: 0 auto; }
+
+        /* Таймер */
+        #timer-box {
+            background: rgba(0, 0, 0, 0.85);
+            border: 5px dashed #00ff00;
+            padding: 15px;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            border-radius: 15px;
+        }
+
+        /* Рулетка */
+        .roulette-wrapper {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            background: #111;
+            border: 8px solid #ff0055;
+            box-shadow: 0 0 30px #ff0055;
+            overflow: hidden;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+
+        .pointer {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 100%;
+            background: #ffff00;
+            box-shadow: 0 0 15px #ffff00;
+            z-index: 10;
+        }
+
+        .roulette-track {
+            display: flex;
+            position: absolute;
+            left: 0;
+            top: 10px;
+            height: 180px;
+            transition: transform 5s cubic-bezier(0.15, 0.9, 0.2, 1);
+        }
+
+        .meme-card {
+            width: 160px;
+            height: 180px;
+            margin: 0 5px;
+            background: #222;
+            border: 4px solid #fff;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px;
+            border-radius: 8px;
+        }
+
+        .meme-card img { width: 100%; height: 120px; object-fit: cover; border-radius: 4px; }
+        .meme-card .title { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+
+        /* Редкости */
+        .rarity-common { border-color: #b0c3d9; background: #2e353d; }
+        .rarity-rare { border-color: #4b69ff; background: #1a2347; }
+        .rarity-epic { border-color: #d32ce6; background: #4a154b; }
+        .rarity-legendary { border-color: #eb4b4b; background: #521a1a; }
+        .rarity-god { border-color: #ffd700; background: #5e4d00; animation: blinker 0.2s infinite; }
+
+        /* Кнопки */
+        .btn {
+            background: #ff0055;
+            color: #fff;
+            font-family: 'Impact', sans-serif;
+            font-size: 1.8rem;
+            padding: 15px 30px;
+            border: 4px solid #fff;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #000;
+            border-radius: 10px;
+            margin: 10px;
+        }
+        .btn:hover { background: #00ffcc; color: #000; transform: scale(1.05); }
+        .btn:disabled { background: #555; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* Инвентарь */
+        .collection {
+            background: rgba(0, 0, 0, 0.85);
+            border: 5px solid #00ffff;
+            padding: 20px;
+            margin-top: 30px;
+            border-radius: 15px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .inventory-item {
+            position: relative;
+            background: #222;
+            border: 3px solid #fff;
+            padding: 5px;
+            border-radius: 8px;
+        }
+        .inventory-item img { width: 100%; height: 100px; object-fit: cover; }
+        .inventory-item .count {
+            position: absolute; top: 2px; right: 2px; background: #ff0000;
+            padding: 2px 6px; font-size: 0.8rem; border-radius: 10px;
+        }
+
+        /* Админка */
+        .admin-panel {
+            display: none;
+            background: rgba(0, 0, 0, 0.95);
+            border: 5px solid #ff0000;
+            padding: 20px;
+            margin-top: 30px;
+            border-radius: 15px;
+            text-align: left;
+        }
+        .admin-panel input, .admin-panel select {
+            width: 100%; padding: 10px; margin: 8px 0; font-family: sans-serif; font-size: 1rem;
+        }
+
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center;
+            flex-direction: column;
+        }
+        .modal img { max-width: 300px; max-height: 300px; border: 5px solid #fff; margin: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 class="shake">💥 МЕМНЫЙ КЕЙСИКОДРОМ 228 💥</h1>
+    
+    <div id="timer-box">
+        ДО СЛЕДУЮЩЕЙ ПРОКРУТКИ: <span id="timer" class="blink" style="color: #00ff00;">00:00</span>
+    </div>
+
+    <!-- Рулетка -->
+    <div class="roulette-wrapper">
+        <div class="pointer"></div>
+        <div class="roulette-track" id="track"></div>
+    </div>
+
+    <button id="open-btn" class="btn shake" onclick="spin()">КРУТИТЬ КЕЙС</button>
+    <button class="btn" style="background:#7a00ff;" onclick="toggleAdmin()">АДМИНКА</button>
+
+    <!-- Инвентарь -->
+    <div class="collection">
+        <h2>🏆 ТВОЯ ТРЕШ-КОЛЛЕКЦИЯ 🏆</h2>
+        <div class="grid" id="inventory"></div>
+    </div>
+
+    <!-- Админ Панель -->
+    <div class="admin-panel" id="adminPanel">
+        <h2 style="color: #ff0000; text-align: center;">⚙️ АДМИН ПАНЕЛЬ (JSON DB) ⚙️</h2>
+        
+        <h3>1. Добавить мем:</h3>
+        <label>Название мема:</label>
+        <input type="text" id="memeName" placeholder="Например: Повар спрашивает повара">
+        
+        <label>Загрузить картинку (файл):</label>
+        <input type="file" id="memeFile" accept="image/*">
+        
+        <label>Редкость:</label>
+        <select id="memeRarity">
+            <option value="common">Обычный (Серый)</option>
+            <option value="rare">Редкий (Синий)</option>
+            <option value="epic">Эпический (Фиолетовый)</option>
+            <option value="legendary">Легендарный (Красный)</option>
+            <option value="god">МЕМНЫЙ БОГ (Золотой)</option>
+        </select>
+
+        <label>Шанс выпадения (Вес):</label>
+        <input type="number" id="memeChance" value="10">
+
+        <button class="btn" style="width: 100%; margin: 10px 0; background: #00aa00;" onclick="addMeme()">ДОБАВИТЬ В ЛОКАЛЬНЫЙ JSON</button>
+
+        <hr style="margin: 20px 0; border-color: #555;">
+
+        <h3>2. Сохранить изменения на GitHub (чтобы было у ВСЕХ):</h3>
+        
+        <p style="margin: 10px 0; color: #ffcc00;">Вариант А: Скачать файл и закинуть на GitHub вручную</p>
+        <button class="btn" style="width: 100%; background: #0088cc;" onclick="downloadJSON()">СКАЧАТЬ ОБНОВЛЕННЫЙ memes.json</button>
+
+        <p style="margin: 15px 0 5px 0; color: #ffcc00;">Вариант Б: Авто-сохранение через GitHub API (Без скачивания):</p>
+        <input type="text" id="ghRepo" placeholder="Ваш логин/репозиторий (например: user/meme-case)">
+        <input type="password" id="ghToken" placeholder="GitHub Personal Access Token">
+        <button class="btn" style="width: 100%; background: #ff0055;" onclick="saveDirectToGitHub()">ОБНОВИТЬ В GITHUB АВТОМАТИЧЕСКИ</button>
+    </div>
+</div>
+
+<!-- Модалка Выигрыша -->
+<div class="modal" id="winModal">
+    <h1 class="blink" style="color: #00ff00; font-size: 3.5rem;">ТЕБЕ ВЫПАЛО:</h1>
+    <h2 id="winName" style="font-size: 2.5rem;"></h2>
+    <img id="winImg" src="" alt="Winner">
+    <button class="btn" onclick="closeModal()">ЗАБРАТЬ В ИНВЕНТАРЬ</button>
+</div>
+
+<script>
+    let memesList = [];
+    let myInventory = JSON.parse(localStorage.getItem('myMemeInventory') || '{}');
+    let lastSpinTime = localStorage.getItem('lastSpinTime') || 0;
+    let isSpinning = false;
+
+    // --- 1. ЗАГРУЗКА БАЗЫ ДАННЫХ ИЗ JSON ---
+    async function loadMemesJSON() {
+        try {
+            const response = await fetch('memes.json?t=' + Date.now()); // Date.now() предотвращает кэширование
+            memesList = await response.json();
+            console.log("База данных загружена:", memesList);
+            renderInventory();
+        } catch (e) {
+            alert("Ошибка загрузки memes.json! Проверьте наличие файла.");
+        }
+    }
+    loadMemesJSON();
+
+    // --- 2. ЗВУКОВЫЕ ЭФФЕКТЫ ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(freq, duration, type='sine') {
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+            osc.stop(audioCtx.currentTime + duration);
+        } catch(e){}
+    }
+
+    // --- 3. ТАЙМЕР 30 МИНУТ ---
+    const SPIN_COOLDOWN = 30 * 60 * 1000;
+
+    function updateTimer() {
+        const now = Date.now();
+        const diff = SPIN_COOLDOWN - (now - lastSpinTime);
+        const btn = document.getElementById('open-btn');
+        const timerEl = document.getElementById('timer');
+
+        if (diff <= 0) {
+            timerEl.innerText = "ГОТОВО!";
+            timerEl.style.color = "#00ff00";
+            if (!isSpinning) btn.disabled = false;
+        } else {
+            btn.disabled = true;
+            const m = Math.floor(diff / 1000 / 60);
+            const s = Math.floor((diff / 1000) % 60);
+            timerEl.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            timerEl.style.color = "#ff0000";
+        }
+    }
+    setInterval(updateTimer, 1000);
+    updateTimer();
+
+    // --- 4. РУЛЕТКА ---
+    function getRandomMeme() {
+        let totalWeight = memesList.reduce((acc, m) => acc + Number(m.chance), 0);
+        let random = Math.random() * totalWeight;
+        for (let meme of memesList) {
+            if (random < meme.chance) return meme;
+            random -= meme.chance;
+        }
+        return memesList[0];
+    }
+
+    function createCardHTML(meme) {
+        return `
+            <div class="meme-card rarity-${meme.rarity}">
+                <img src="${meme.img}" alt="${meme.name}">
+                <div class="title">${meme.name}</div>
+            </div>
+        `;
+    }
+
+    function spin() {
+        if (isSpinning || memesList.length === 0) return;
+        
+        isSpinning = true;
+        document.getElementById('open-btn').disabled = true;
+        
+        const track = document.getElementById('track');
+        track.style.transition = 'none';
+        track.style.transform = 'translateX(0)';
+
+        let tape = [];
+        for (let i = 0; i < 40; i++) {
+            tape.push(getRandomMeme());
+        }
+
+        const winningMeme = getRandomMeme();
+        tape[35] = winningMeme;
+
+        track.innerHTML = tape.map(m => createCardHTML(m)).join('');
+
+        const cardWidth = 170;
+        const targetOffset = (35 * cardWidth) - (document.querySelector('.roulette-wrapper').offsetWidth / 2) + (cardWidth / 2);
+
+        let tickCount = 0;
+        const tickInterval = setInterval(() => {
+            tickCount++;
+            playSound(300 + (tickCount * 10), 0.05, 'sawtooth');
+            if(tickCount > 30) clearInterval(tickInterval);
+        }, 150);
+
+        setTimeout(() => {
+            track.style.transition = 'transform 5s cubic-bezier(0.1, 0.9, 0.1, 1)';
+            track.style.transform = `translateX(-${targetOffset}px)`;
+        }, 50);
+
+        setTimeout(() => {
+            isSpinning = false;
+            lastSpinTime = Date.now();
+            localStorage.setItem('lastSpinTime', lastSpinTime);
+            
+            myInventory[winningMeme.name] = (myInventory[winningMeme.name] || 0) + 1;
+            localStorage.setItem('myMemeInventory', JSON.stringify(myInventory));
+            renderInventory();
+
+            document.getElementById('winName').innerText = winningMeme.name;
+            document.getElementById('winImg').src = winningMeme.img;
+            document.getElementById('winModal').style.display = 'flex';
+            
+            playSound(600, 0.2, 'square');
+            setTimeout(() => playSound(800, 0.4, 'square'), 200);
+
+            updateTimer();
+        }, 5200);
+    }
+
+    function closeModal() {
+        document.getElementById('winModal').style.display = 'none';
+    }
+
+    function renderInventory() {
+        const invEl = document.getElementById('inventory');
+        invEl.innerHTML = '';
+        
+        for (let name in myInventory) {
+            const meme = memesList.find(m => m.name === name) || { img: '', rarity: 'common' };
+            invEl.innerHTML += `
+                <div class="inventory-item rarity-${meme.rarity}">
+                    <div class="count">x${myInventory[name]}</div>
+                    <img src="${meme.img}">
+                    <div style="font-size:0.8rem; overflow:hidden;">${name}</div>
+                </div>
+            `;
+        }
+    }
+
+    // --- 5. АДМИНКА И РАБОТА С JSON ---
+    function toggleAdmin() {
+        const panel = document.getElementById('adminPanel');
+        if (panel.style.display === 'block') {
+            panel.style.display = 'none';
+        } else {
+            const pass = prompt("ПАРОЛЬ АДМИНА:");
+            if (pass === "1002") {
+                panel.style.display = 'block';
+            } else {
+                alert("НЕВЕРНЫЙ ПАРОЛЬ!");
+            }
+        }
+    }
+
+    function addMeme() {
+        const name = document.getElementById('memeName').value;
+        const fileInput = document.getElementById('memeFile');
+        const rarity = document.getElementById('memeRarity').value;
+        const chance = document.getElementById('memeChance').value;
+
+        if (!name || !fileInput.files[0]) {
+            alert("Заполните название и выберите файл картинки!");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const base64Img = e.target.result;
+            
+            const newMeme = {
+                id: Date.now(),
+                name: name,
+                img: base64Img,
+                rarity: rarity,
+                chance: Number(chance)
+            };
+
+            memesList.push(newMeme);
+            alert("Мем добавлен в локальный список! Теперь сохраните файл ниже.");
+            document.getElementById('memeName').value = '';
+            document.getElementById('memeFile').value = '';
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+    }
+
+    // Скачать файл memes.json
+    function downloadJSON() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(memesList, null, 2));
+        const dlAnchor = document.createElement('a');
+        dlAnchor.setAttribute("href", dataStr);
+        dlAnchor.setAttribute("download", "memes.json");
+        dlAnchor.click();
+    }
+
+    // Прямая запись на GitHub через API
+    async function saveDirectToGitHub() {
+        const repo = document.getElementById('ghRepo').value.trim();
+        const token = document.getElementById('ghToken').value.trim();
+
+        if (!repo || !token) {
+            alert("Заполните имя репозитория и GitHub Токен!");
+            return;
+        }
+
+        try {
+            // 1. Получаем SHA существующего файла memes.json
+            const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/memes.json`, {
+                headers: { 'Authorization': `token ${token}` }
+            });
+            const getData = await getRes.json();
+            const sha = getData.sha;
+
+            // 2. Кодируем новый JSON в UTF-8 Base64
+            const jsonString = JSON.stringify(memesList, null, 2);
+            const bytes = new TextEncoder().encode(jsonString);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            const contentBase64 = btoa(binary);
+
+            // 3. Отправляем PUT запрос
+            const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/memes.json`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: 'Обновление базы мемов из админки',
+                    content: contentBase64,
+                    sha: sha
+                })
+            });
+
+            if (putRes.ok) {
+                alert("УСПЕШНО! Файл memes.json обновлен на GitHub! Новые мемы появятся у всех пользователей через 1-2 минуты.");
+            } else {
+                const err = await putRes.json();
+                alert("Ошибка GitHub: " + err.message);
+            }
+        } catch (e) {
+            alert("Ошибка при сохранении: " + e.message);
+        }
+    }
+</script>
+</body>
+</html>
