@@ -27,17 +27,17 @@
             100% { background-position: 0% 50%; }
         }
 
-        .blink { animation: blinker 0.3s linear infinite; }
+        .blink { animation: blinker 0.2s linear infinite; }
         @keyframes blinker { 50% { opacity: 0; } }
 
-        .shake { animation: shake 0.5s infinite; }
+        .shake { animation: shake 0.3s infinite; }
         @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            10% { transform: translate(-1px, -2px) rotate(-1deg); }
-            30% { transform: translate(-3px, 0px) rotate(1deg); }
-            50% { transform: translate(1px, 2px) rotate(-1deg); }
-            70% { transform: translate(3px, 1px) rotate(0deg); }
-            100% { transform: translate(1px, -2px) rotate(-1deg); }
+            0% { transform: translate(3px, 3px) rotate(0deg); }
+            10% { transform: translate(-3px, -4px) rotate(-2deg); }
+            30% { transform: translate(-5px, 0px) rotate(2deg); }
+            50% { transform: translate(3px, 4px) rotate(-2deg); }
+            70% { transform: translate(5px, 2px) rotate(0deg); }
+            100% { transform: translate(3px, -4px) rotate(-2deg); }
         }
 
         h1 { font-size: 3rem; color: #ffff00; margin-bottom: 10px; }
@@ -202,12 +202,51 @@
         }
         .btn-delete:hover { background: #cc0000; }
 
+        /* Модалка выигрыша & СУПЕР ТРЕШ-ЭФФЕКТЫ */
         .modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center;
-            flex-direction: column;
+            background: rgba(0,0,0,0.95); z-index: 100; justify-content: center; align-items: center;
+            flex-direction: column; overflow: hidden;
         }
-        .modal img { max-width: 300px; max-height: 300px; border: 5px solid #fff; margin: 20px; }
+
+        /* Диско-стробоскоп при победе */
+        @keyframes discoFlash {
+            0% { background: rgba(255, 0, 0, 0.95); }
+            20% { background: rgba(0, 255, 0, 0.95); }
+            40% { background: rgba(0, 0, 255, 0.95); }
+            60% { background: rgba(255, 255, 0, 0.95); }
+            80% { background: rgba(255, 0, 255, 0.95); }
+            100% { background: rgba(0, 255, 255, 0.95); }
+        }
+
+        .trash-win-active {
+            animation: discoFlash 0.06s infinite, shake 0.1s infinite !important;
+        }
+
+        @keyframes crazySpin {
+            0% { transform: scale(0.2) rotate(0deg); }
+            50% { transform: scale(1.4) rotate(180deg); }
+            100% { transform: scale(1) rotate(360deg); }
+        }
+
+        .win-img-crazy {
+            animation: crazySpin 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), shake 0.08s infinite !important;
+            box-shadow: 0 0 50px #fff, 0 0 100px #ff0055, 0 0 150px #00ff00 !important;
+            border: 8px solid #ffff00 !important;
+        }
+
+        /* Летающие частицы */
+        .trash-particle {
+            position: fixed;
+            font-size: 3.5rem;
+            pointer-events: none;
+            z-index: 101;
+            animation: particleFly 1s ease-out forwards;
+        }
+        @keyframes particleFly {
+            0% { transform: translate(0, 0) scale(0.5) rotate(0deg); opacity: 1; }
+            100% { transform: translate(var(--dx), var(--dy)) scale(2) rotate(720deg); opacity: 0; }
+        }
     </style>
 </head>
 <body>
@@ -254,6 +293,9 @@
         <label>Загрузить картинку:</label>
         <input type="file" id="memeFile" accept="image/*">
         
+        <label style="color: #00ffff; font-weight: bold;">🔊 Загрузить кастомный звук мема (MP3 / WAV):</label>
+        <input type="file" id="memeAudio" accept="audio/*">
+
         <label>Редкость:</label>
         <select id="memeRarity">
             <option value="common">Обычный (Серый)</option>
@@ -279,10 +321,10 @@
 
 <!-- Модалка Выигрыша -->
 <div class="modal" id="winModal">
-    <h1 class="blink" style="color: #00ff00; font-size: 3.5rem;">ТЕБЕ ВЫПАЛО:</h1>
-    <h2 id="winName" style="font-size: 2.5rem;"></h2>
-    <img id="winImg" src="" alt="Winner">
-    <button class="btn" onclick="closeModal()">ЗАБРАТЬ В ИНВЕНТАРЬ</button>
+    <h1 class="blink" style="color: #ffff00; font-size: 4rem; text-shadow: 5px 5px 0 #ff0000;">💥 СВЕРХРАЗРЫВ! 💥</h1>
+    <h2 id="winName" style="font-size: 3rem; color: #00ff00;"></h2>
+    <img id="winImg" src="" alt="Winner" style="max-width: 320px; max-height: 320px; border-radius: 10px;">
+    <button class="btn shake" style="font-size: 2rem; background: #00ff00; color: #000;" onclick="closeModal()">ЗАБРАТЬ В ИНВЕНТАРЬ</button>
 </div>
 
 <script>
@@ -290,6 +332,7 @@
     let myInventory = JSON.parse(localStorage.getItem('myMemeInventory') || '{}');
     let lastSpinTime = localStorage.getItem('lastSpinTime') || 0;
     let isSpinning = false;
+    let currentAudioTrack = null;
 
     document.getElementById('ghRepo').value = localStorage.getItem('ghRepo') || '';
     document.getElementById('ghToken').value = localStorage.getItem('ghToken') || '';
@@ -313,7 +356,7 @@
     }
     loadMemesJSON();
 
-    // --- 2. ЗВУКОВЫЕ ЭФФЕКТЫ ---
+    // --- 2. ЗВУКОВЫЕ ЭФФЕКТЫ ДВИЖКА ---
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSound(freq, duration, type='sine') {
         try {
@@ -327,6 +370,16 @@
             gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
             osc.stop(audioCtx.currentTime + duration);
         } catch(e){}
+    }
+
+    // Синтез безумного треш-звука (если нет кастомного аудофайла)
+    function playCrazyWinSynth() {
+        let step = 0;
+        const interval = setInterval(() => {
+            playSound(150 + Math.random() * 1200, 0.08, 'sawtooth');
+            step++;
+            if (step > 35) clearInterval(interval);
+        }, 60);
     }
 
     // --- 3. ТАЙМЕР (30 минут) ---
@@ -353,7 +406,7 @@
     setInterval(updateTimer, 1000);
     updateTimer();
 
-    // --- 4. РУЛЕТКА ---
+    // --- 4. РУЛЕТКА И БЕЗУМНЫЕ ЭФФЕКТЫ ---
     function getRandomMeme() {
         let totalWeight = memesList.reduce((acc, m) => acc + Number(m.chance), 0);
         let random = Math.random() * totalWeight;
@@ -399,7 +452,7 @@
         let tickCount = 0;
         const tickInterval = setInterval(() => {
             tickCount++;
-            playSound(300 + (tickCount * 10), 0.05, 'sawtooth');
+            playSound(300 + (tickCount * 12), 0.05, 'sawtooth');
             if(tickCount > 30) clearInterval(tickInterval);
         }, 150);
 
@@ -417,19 +470,74 @@
             localStorage.setItem('myMemeInventory', JSON.stringify(myInventory));
             renderInventory();
 
-            document.getElementById('winName').innerText = winningMeme.name;
-            document.getElementById('winImg').src = winningMeme.img;
-            document.getElementById('winModal').style.display = 'flex';
-            
-            playSound(600, 0.2, 'square');
-            setTimeout(() => playSound(800, 0.4, 'square'), 200);
-
+            // ПОКАЗЫВАЕМ ПОБЕДУ С ТРЕШ-ЭФФЕКТАМИ
+            showWinEffects(winningMeme);
             updateTimer();
         }, 5200);
     }
 
+    function showWinEffects(meme) {
+        const modal = document.getElementById('winModal');
+        const winImg = document.getElementById('winImg');
+
+        document.getElementById('winName').innerText = meme.name;
+        winImg.src = meme.img;
+
+        // Включаем супер-стробоскоп и анимацию
+        modal.classList.add('trash-win-active');
+        winImg.classList.add('win-img-crazy');
+        modal.style.display = 'flex';
+
+        // Спавним летающие треш-эмодзи
+        spawnTrashParticles();
+
+        // Проигрываем звук: Кастомный аудио-файл или Синтезатор Хаоса
+        if (meme.audio) {
+            try {
+                if (currentAudioTrack) currentAudioTrack.pause();
+                currentAudioTrack = new Audio(meme.audio);
+                currentAudioTrack.play().catch(e => playCrazyWinSynth());
+            } catch(e) {
+                playCrazyWinSynth();
+            }
+        } else {
+            playCrazyWinSynth();
+        }
+    }
+
+    function spawnTrashParticles() {
+        const emojis = ['🔥', '💥', '😱', '🗿', '👑', '💯', '🎉', '⚡', '🤡', '💩', '🍌', '🚀'];
+        for (let i = 0; i < 45; i++) {
+            setTimeout(() => {
+                const p = document.createElement('div');
+                p.className = 'trash-particle';
+                p.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+                p.style.left = (Math.random() * 90 + 5) + 'vw';
+                p.style.top = (Math.random() * 90 + 5) + 'vh';
+                
+                const dx = (Math.random() * 800 - 400) + 'px';
+                const dy = (Math.random() * 800 - 400) + 'px';
+                p.style.setProperty('--dx', dx);
+                p.style.setProperty('--dy', dy);
+
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 1000);
+            }, i * 40);
+        }
+    }
+
     function closeModal() {
-        document.getElementById('winModal').style.display = 'none';
+        const modal = document.getElementById('winModal');
+        const winImg = document.getElementById('winImg');
+        
+        modal.style.display = 'none';
+        modal.classList.remove('trash-win-active');
+        winImg.classList.remove('win-img-crazy');
+
+        if (currentAudioTrack) {
+            currentAudioTrack.pause();
+            currentAudioTrack = null;
+        }
     }
 
     function renderInventory() {
@@ -448,7 +556,7 @@
         }
     }
 
-    // --- 5. АДМИНКА + УДАЛЕНИЕ МЕМОВ ---
+    // --- 5. АДМИНКА + УДАЛЕНИЕ + ЗАГРУЗКА ЗВУКА И КАРТИНКИ ---
     function toggleAdmin() {
         const panel = document.getElementById('adminPanel');
         if (panel.style.display === 'block') {
@@ -474,7 +582,9 @@
         listEl.innerHTML = memesList.map((m, index) => `
             <div class="admin-meme-item">
                 <img src="${m.img}" alt="${m.name}">
-                <span style="font-size: 0.9rem; margin-left: 10px; flex-grow: 1; text-align: left;">${m.name} (${m.rarity})</span>
+                <span style="font-size: 0.9rem; margin-left: 10px; flex-grow: 1; text-align: left;">
+                    ${m.name} (${m.rarity}) ${m.audio ? '🔊' : ''}
+                </span>
                 <button class="btn-delete" onclick="deleteMeme(${index})">🗑️ Удалить</button>
             </div>
         `).join('');
@@ -534,7 +644,7 @@
         if (!confirm(`Точно удалить мем "${memesList[index].name}"?`)) return;
 
         const deletedName = memesList[index].name;
-        memesList.splice(index, 1); // Удаляем из массива
+        memesList.splice(index, 1);
         renderAdminMemeList();
 
         const success = await pushListToGitHub(`Удален мем: ${deletedName}`);
@@ -545,9 +655,21 @@
         }
     }
 
+    // Вспомогательная функция чтения файлов в Base64
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            if (!file) resolve(null);
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+    }
+
     async function addAndPublishMeme() {
         const name = document.getElementById('memeName').value.trim();
         const fileInput = document.getElementById('memeFile');
+        const audioInput = document.getElementById('memeAudio');
         const rarity = document.getElementById('memeRarity').value;
         const chance = document.getElementById('memeChance').value;
 
@@ -558,16 +680,17 @@
 
         const addBtn = document.getElementById('add-btn');
         addBtn.disabled = true;
-        addBtn.innerText = "⏳ ПУБЛИКАЦИЯ...";
+        addBtn.innerText = "⏳ ЗАГРУЗКА И ПУБЛИКАЦИЯ...";
 
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            const base64Img = e.target.result;
-            
+        try {
+            const base64Img = await fileToBase64(fileInput.files[0]);
+            const base64Audio = await fileToBase64(audioInput.files[0]);
+
             const newMeme = {
                 id: Date.now(),
                 name: name,
                 img: base64Img,
+                audio: base64Audio, // Сохраняем Base64 аудио или null
                 rarity: rarity,
                 chance: Number(chance)
             };
@@ -577,19 +700,21 @@
             const success = await pushListToGitHub(`Добавлен мем: ${name}`);
 
             if (success) {
-                alert("Мем успешно добавлен на GitHub!");
+                alert("🎉 Мем со звуком успешно опубликован на GitHub!");
                 document.getElementById('memeName').value = '';
                 document.getElementById('memeFile').value = '';
+                document.getElementById('memeAudio').value = '';
                 renderAdminMemeList();
             } else {
                 alert("Ошибка при сохранении мема на GitHub.");
             }
+        } catch (err) {
+            console.error(err);
+            alert("Ошибка обработки файлов!");
+        }
 
-            addBtn.disabled = false;
-            addBtn.innerText = "🚀 ОПУБЛИКОВАТЬ МЕМ НА GITHUB";
-        };
-
-        reader.readAsDataURL(fileInput.files[0]);
+        addBtn.disabled = false;
+        addBtn.innerText = "🚀 ОПУБЛИКОВАТЬ МЕМ НА GITHUB";
     }
 </script>
 </body>
