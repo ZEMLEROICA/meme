@@ -7,32 +7,11 @@
     "chance": 50
   },
   {
-    "id": 2,
-    "name": "Повар",
-    "img": "https://i.imgur.com/38p6U6N.jpg",
-    "rarity": "rare",
-    "chance": 30
-  },
-  {
     "id": 3,
     "name": "Гигачад",
     "img": "https://i.imgur.com/rN9k4T2.jpg",
     "rarity": "epic",
     "chance": 15
-  },
-  {
-    "id": 4,
-    "name": "Жмышенко Валерий",
-    "img": "https://i.imgur.com/S20mXjF.jpg",
-    "rarity": "legendary",
-    "chance": 4
-  },
-  {
-    "id": 5,
-    "name": "ШРЕК БОГ",
-    "img": "https://media.giphy.com/media/pMZT9prrgA6f6/giphy.gif",
-    "rarity": "god",
-    "chance": 1
   },
   {
     "id": 1786406307262,
